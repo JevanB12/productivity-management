@@ -11,6 +11,12 @@ node_modules
 dist
 dist-ssr
 *.local
+.env
+.env.*
+!.env.example
+
+# Local data backups (keep the folder, not the JSON files)
+backups/*.json
 
 # Editor directories and files
 .vscode/*

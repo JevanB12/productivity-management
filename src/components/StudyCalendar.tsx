@@ -1,6 +1,22 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
-import { dateKey, useStudyTasks } from '../useStudyTasks'
+import { useAuth } from '../AuthProvider'
+import { dateKey, useStudyTasks, type SyncStatus } from '../useStudyTasks'
 import './StudyCalendar.css'
+
+function syncStatusLabel(status: SyncStatus): string {
+  switch (status) {
+    case 'loading':
+      return 'Loading from cloud…'
+    case 'syncing':
+      return 'Saving…'
+    case 'synced':
+      return 'Saved to cloud'
+    case 'error':
+      return 'Cloud sync failed'
+    default:
+      return 'Local only'
+  }
+}
 
 function startOfToday(): Date {
   const d = new Date()
@@ -46,7 +62,14 @@ function upcomingDayLabel(date: Date, today: Date): string {
   }).format(date)
 }
 
-export function StudyCalendar() {
+export function StudyCalendar({
+  userId,
+  userEmail,
+}: {
+  userId: string
+  userEmail: string
+}) {
+  const { signOut } = useAuth()
   const today = useMemo(() => startOfToday(), [])
   const [cursorYear, setCursorYear] = useState(today.getFullYear())
   const [cursorMonth, setCursorMonth] = useState(today.getMonth())
@@ -64,7 +87,9 @@ export function StudyCalendar() {
     toggleBacklog,
     removeBacklog,
     renameBacklog,
-  } = useStudyTasks()
+    syncStatus,
+    importRecoverySeed,
+  } = useStudyTasks(userId)
   const [draft, setDraft] = useState('')
   const [backlogDraft, setBacklogDraft] = useState('')
   const [shiftDaysInput, setShiftDaysInput] = useState('')
@@ -81,6 +106,24 @@ export function StudyCalendar() {
     setEditingId(null)
     setEditDraft('')
   }, [selectedKey])
+
+  useEffect(() => {
+    if (syncStatus === 'loading') return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('import-recovery') !== '1') return
+    if (sessionStorage.getItem('recovery-seed-done')) return
+
+    void importRecoverySeed().then(() => {
+      sessionStorage.setItem('recovery-seed-done', '1')
+      params.delete('import-recovery')
+      const next = params.toString()
+      window.history.replaceState(
+        {},
+        '',
+        next ? `${window.location.pathname}?${next}` : window.location.pathname,
+      )
+    })
+  }, [syncStatus, importRecoverySeed])
 
   const grid = useMemo(() => {
     const first = new Date(cursorYear, cursorMonth, 1)
@@ -275,13 +318,32 @@ export function StudyCalendar() {
         <div>
           <h1 className="study-title">Study calendar</h1>
           <p className="study-sub">
-            Pick a day, add what you need to study — everything stays on this
-            device.
+            Pick a day, add what you need to study — saved to your account in
+            the cloud.
           </p>
         </div>
-        <button type="button" className="study-btn ghost" onClick={selectToday}>
-          Today
-        </button>
+        <div className="study-header-actions">
+          <div
+            className={`study-sync study-sync-${syncStatus}`}
+            aria-live="polite"
+          >
+            <span className="study-sync-dot" aria-hidden />
+            <span className="study-sync-label">{syncStatusLabel(syncStatus)}</span>
+          </div>
+          <span className="auth-user" title={userEmail}>
+            {userEmail}
+          </span>
+          <button type="button" className="study-btn ghost" onClick={selectToday}>
+            Today
+          </button>
+          <button
+            type="button"
+            className="study-btn ghost"
+            onClick={() => void signOut()}
+          >
+            Sign out
+          </button>
+        </div>
       </header>
 
       <section className="study-upcoming" aria-labelledby="upcoming-title">

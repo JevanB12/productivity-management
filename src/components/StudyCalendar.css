@@ -10,7 +10,121 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.study-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.study-header-actions .auth-user {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  max-width: 18ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.study-sync {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.study-sync-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.study-sync-synced .study-sync-dot {
+  background: #22c55e;
+}
+
+.study-sync-syncing .study-sync-dot,
+.study-sync-loading .study-sync-dot {
+  background: var(--accent);
+  animation: study-sync-pulse 1s ease-in-out infinite;
+}
+
+.study-sync-error .study-sync-dot {
+  background: var(--danger);
+}
+
+@keyframes study-sync-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.study-sync-panel {
+  margin-bottom: 1.25rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.study-sync-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.study-sync-id-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.study-sync-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--text-h);
+  word-break: break-all;
+}
+
+.study-sync-copy {
+  font-size: 0.78rem;
+  padding: 0.35rem 0.6rem;
+}
+
+.study-sync-hint {
+  margin: 0.55rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  max-width: 58ch;
+}
+
+.study-sync-link-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 0.75rem;
+}
+
+.study-sync-link-form .study-input {
+  flex: 1 1 220px;
+  min-width: 0;
 }
 
 .study-cal-column {

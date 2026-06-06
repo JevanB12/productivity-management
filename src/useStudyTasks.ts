@@ -1,14 +1,32 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { buildRecoverySeed, mergeSeed } from './data/recoverySeed'
+import { fetchStudyData, saveStudyData } from './lib/studyCloudSync'
+import { isSupabaseConfigured } from './lib/supabase'
 import type { StudyTask } from './types'
 
-const STORAGE_KEY = 'study-calendar-tasks'
-const BACKLOG_STORAGE_KEY = 'study-calendar-backlog'
+const LEGACY_TASKS_KEY = 'study-calendar-tasks'
+const LEGACY_BACKLOG_KEY = 'study-calendar-backlog'
+const LEGACY_UPDATED_KEY = 'study-calendar-updated-at'
 
 export type TasksByDate = Record<string, StudyTask[]>
+export type SyncStatus = 'loading' | 'synced' | 'syncing' | 'error' | 'offline'
 
-function load(): TasksByDate {
+function tasksKey(userId: string) {
+  return `study-calendar-tasks-${userId}`
+}
+
+function backlogKey(userId: string) {
+  return `study-calendar-backlog-${userId}`
+}
+
+function updatedKey(userId: string) {
+  return `study-calendar-updated-at-${userId}`
+}
+
+function load(userId: string): TasksByDate {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    let raw = localStorage.getItem(tasksKey(userId))
+    if (!raw) raw = localStorage.getItem(LEGACY_TASKS_KEY)
     if (!raw) return {}
     const parsed = JSON.parse(raw) as TasksByDate
     return parsed && typeof parsed === 'object' ? parsed : {}
@@ -17,13 +35,14 @@ function load(): TasksByDate {
   }
 }
 
-function save(data: TasksByDate) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+function save(userId: string, data: TasksByDate) {
+  localStorage.setItem(tasksKey(userId), JSON.stringify(data))
 }
 
-function loadBacklog(): StudyTask[] {
+function loadBacklog(userId: string): StudyTask[] {
   try {
-    const raw = localStorage.getItem(BACKLOG_STORAGE_KEY)
+    let raw = localStorage.getItem(backlogKey(userId))
+    if (!raw) raw = localStorage.getItem(LEGACY_BACKLOG_KEY)
     if (!raw) return []
     const parsed = JSON.parse(raw) as StudyTask[]
     return Array.isArray(parsed) ? parsed : []
@@ -32,8 +51,24 @@ function loadBacklog(): StudyTask[] {
   }
 }
 
-function saveBacklog(items: StudyTask[]) {
-  localStorage.setItem(BACKLOG_STORAGE_KEY, JSON.stringify(items))
+function saveBacklog(userId: string, items: StudyTask[]) {
+  localStorage.setItem(backlogKey(userId), JSON.stringify(items))
+}
+
+function getLocalUpdatedAt(userId: string): string | null {
+  return (
+    localStorage.getItem(updatedKey(userId)) ??
+    localStorage.getItem(LEGACY_UPDATED_KEY)
+  )
+}
+
+function setLocalUpdatedAt(userId: string, iso: string) {
+  localStorage.setItem(updatedKey(userId), iso)
+}
+
+function hasAnyTasks(byDate: TasksByDate, backlog: StudyTask[]): boolean {
+  if (backlog.length > 0) return true
+  return Object.values(byDate).some((list) => (list?.length ?? 0) > 0)
 }
 
 export function dateKey(d: Date): string {
@@ -75,17 +110,92 @@ function shiftAllTasks(prev: TasksByDate, deltaDays: number): TasksByDate {
   return next
 }
 
-export function useStudyTasks() {
-  const [byDate, setByDate] = useState<TasksByDate>(load)
-  const [backlog, setBacklog] = useState<StudyTask[]>(loadBacklog)
+export function useStudyTasks(userId: string) {
+  const [byDate, setByDate] = useState<TasksByDate>({})
+  const [backlog, setBacklog] = useState<StudyTask[]>([])
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>(() =>
+    isSupabaseConfigured() ? 'loading' : 'offline',
+  )
+  const hydrated = useRef(false)
+  const saveTimer = useRef<number | null>(null)
 
   useEffect(() => {
-    save(byDate)
-  }, [byDate])
+    let cancelled = false
+    hydrated.current = false
+    setSyncStatus(isSupabaseConfigured() ? 'loading' : 'offline')
+
+    async function hydrate() {
+      const localByDate = load(userId)
+      const localBacklog = loadBacklog(userId)
+      setByDate(localByDate)
+      setBacklog(localBacklog)
+
+      if (!isSupabaseConfigured()) {
+        hydrated.current = true
+        setSyncStatus('offline')
+        return
+      }
+
+      try {
+        const cloud = await fetchStudyData(userId)
+        if (cancelled) return
+
+        const localUpdated = getLocalUpdatedAt(userId)
+        const localTime = localUpdated ? Date.parse(localUpdated) : 0
+        const cloudTime = cloud?.updatedAt ? Date.parse(cloud.updatedAt) : 0
+        const localHasData = hasAnyTasks(localByDate, localBacklog)
+
+        if (cloud && cloudTime >= localTime) {
+          setByDate(cloud.byDate)
+          setBacklog(cloud.backlog)
+          save(userId, cloud.byDate)
+          saveBacklog(userId, cloud.backlog)
+          if (cloud.updatedAt) setLocalUpdatedAt(userId, cloud.updatedAt)
+        } else if (localHasData) {
+          const updatedAt = await saveStudyData(userId, localByDate, localBacklog)
+          if (cancelled) return
+          setLocalUpdatedAt(userId, updatedAt)
+        }
+
+        setSyncStatus('synced')
+      } catch {
+        if (!cancelled) setSyncStatus('error')
+      } finally {
+        if (!cancelled) hydrated.current = true
+      }
+    }
+
+    void hydrate()
+    return () => {
+      cancelled = true
+    }
+  }, [userId])
 
   useEffect(() => {
-    saveBacklog(backlog)
-  }, [backlog])
+    if (!hydrated.current) return
+
+    save(userId, byDate)
+    saveBacklog(userId, backlog)
+    const updatedAt = new Date().toISOString()
+    setLocalUpdatedAt(userId, updatedAt)
+
+    if (!isSupabaseConfigured()) return
+
+    setSyncStatus((s) => (s === 'error' ? 'error' : 'syncing'))
+    if (saveTimer.current) window.clearTimeout(saveTimer.current)
+    saveTimer.current = window.setTimeout(() => {
+      void saveStudyData(userId, byDate, backlog)
+        .then((cloudUpdatedAt) => {
+          setLocalUpdatedAt(userId, cloudUpdatedAt)
+          setSyncStatus('synced')
+        })
+        .catch(() => setSyncStatus('error'))
+    }, 600)
+
+    return () => {
+      if (saveTimer.current) window.clearTimeout(saveTimer.current)
+    }
+  }, [byDate, backlog, userId])
 
   const addTask = useCallback((key: string, text: string) => {
     const trimmed = text.trim()
@@ -177,9 +287,46 @@ export function useStudyTasks() {
     )
   }, [])
 
+  const importRecoverySeed = useCallback(async () => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const todayKey = dateKey(today)
+    const seed = buildRecoverySeed(todayKey)
+    let mergedByDate = { ...byDate }
+    let mergedBacklog = [...backlog]
+
+    if (isSupabaseConfigured()) {
+      try {
+        const cloud = await fetchStudyData(userId)
+        if (cloud) {
+          mergedByDate = cloud.byDate
+          mergedBacklog = cloud.backlog
+        }
+      } catch {
+        /* use local state */
+      }
+    }
+
+    const merged = mergeSeed(mergedByDate, mergedBacklog, seed)
+    setByDate(merged.byDate)
+    setBacklog(merged.backlog)
+    save(userId, merged.byDate)
+    saveBacklog(userId, merged.backlog)
+
+    if (isSupabaseConfigured()) {
+      const updatedAt = await saveStudyData(userId, merged.byDate, merged.backlog)
+      setLocalUpdatedAt(userId, updatedAt)
+      setSyncStatus('synced')
+    }
+
+    return true
+  }, [userId, byDate, backlog])
+
   return {
     byDate,
     backlog,
+    syncStatus,
+    importRecoverySeed,
     addTask,
     toggleTask,
     removeTask,
