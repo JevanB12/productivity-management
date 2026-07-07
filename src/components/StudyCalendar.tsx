@@ -1,6 +1,19 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../AuthProvider'
+import {
+  CALENDAR_FILTERS,
+  categoryLabel,
+  countVisibleAndHidden,
+  filterScopeLabel,
+  defaultCategoryForFilter,
+  filterByDate,
+  filterTasks,
+  normalizeTask,
+  type CalendarFilter,
+  type TaskCategory,
+} from '../lib/categories'
 import { dateKey, useStudyTasks, type SyncStatus } from '../useStudyTasks'
+import type { StudyTask } from '../types'
 import './StudyCalendar.css'
 
 function syncStatusLabel(status: SyncStatus): string {
@@ -82,14 +95,19 @@ export function StudyCalendar({
     toggleTask,
     removeTask,
     renameTask,
+    setTaskCategory,
     shiftAllByDays,
     addBacklog,
+    scheduleBacklogToDate,
     toggleBacklog,
     removeBacklog,
     renameBacklog,
+    setBacklogCategory,
     syncStatus,
     importRecoverySeed,
   } = useStudyTasks(userId)
+  const [calendarFilter, setCalendarFilter] = useState<CalendarFilter>('all')
+  const [addCategory, setAddCategory] = useState<TaskCategory>('work')
   const [draft, setDraft] = useState('')
   const [backlogDraft, setBacklogDraft] = useState('')
   const [shiftDaysInput, setShiftDaysInput] = useState('')
@@ -100,7 +118,18 @@ export function StudyCalendar({
   const [upcomingOffset, setUpcomingOffset] = useState(0)
 
   const selectedKey = dateKey(selected)
-  const tasksForDay = byDate[selectedKey] ?? []
+  const activeCategory = defaultCategoryForFilter(calendarFilter)
+  const filteredByDate = useMemo(
+    () => filterByDate(byDate, calendarFilter),
+    [byDate, calendarFilter],
+  )
+  const filteredBacklog = useMemo(
+    () => filterTasks(backlog, calendarFilter),
+    [backlog, calendarFilter],
+  )
+  const tasksForDay = filteredByDate[selectedKey] ?? []
+  const todoPending = filteredBacklog.filter((t) => !t.done).length
+  const todoDone = filteredBacklog.length - todoPending
 
   useEffect(() => {
     setEditingId(null)
@@ -158,17 +187,19 @@ export function StudyCalendar({
       const date = new Date(today)
       date.setDate(date.getDate() + upcomingOffset + i)
       const key = dateKey(date)
-      const tasks = byDate[key] ?? []
-      const pending = tasks.filter((t) => !t.done).length
+      const allTasks = byDate[key] ?? []
+      const tasks = filteredByDate[key] ?? []
+      const { hidden, pending } = countVisibleAndHidden(allTasks, calendarFilter)
       return {
         date,
         key,
         label: upcomingDayLabel(date, today),
         tasks,
         pending,
+        hidden,
       }
     })
-  }, [today, byDate, upcomingOffset])
+  }, [today, byDate, filteredByDate, upcomingOffset, calendarFilter])
 
   function goPrevUpcoming() {
     setUpcomingOffset((o) => Math.max(0, o - 5))
@@ -243,7 +274,8 @@ export function StudyCalendar({
 
   function submitTask(e: FormEvent) {
     e.preventDefault()
-    addTask(selectedKey, draft)
+    const category = calendarFilter === 'all' ? addCategory : activeCategory
+    addTask(selectedKey, draft, category)
     setDraft('')
   }
 
@@ -282,8 +314,52 @@ export function StudyCalendar({
 
   function submitBacklog(e: FormEvent) {
     e.preventDefault()
-    addBacklog(backlogDraft)
+    const category = calendarFilter === 'all' ? addCategory : activeCategory
+    addBacklog(backlogDraft, category)
     setBacklogDraft('')
+  }
+
+  function scheduleTodo(taskId: string) {
+    scheduleBacklogToDate(taskId, selectedKey)
+  }
+
+  function CategoryChip({
+    task,
+    onToggle,
+  }: {
+    task: StudyTask
+    onToggle: (category: TaskCategory) => void
+  }) {
+    const category = normalizeTask(task).category
+    const next = category === 'work' ? 'other' : 'work'
+    return (
+      <button
+        type="button"
+        className={`study-category-chip study-category-chip-${category}`}
+        onClick={() => onToggle(next)}
+        title={`Mark as ${categoryLabel(next)}`}
+      >
+        {categoryLabel(category)}
+      </button>
+    )
+  }
+
+  function CategoryPicker() {
+    if (calendarFilter !== 'all') return null
+    return (
+      <div className="study-category-pick" role="group" aria-label="Task category">
+        {(['work', 'other'] as const).map((cat) => (
+          <button
+            key={cat}
+            type="button"
+            className={`study-category-pick-btn ${addCategory === cat ? 'active' : ''}`}
+            onClick={() => setAddCategory(cat)}
+          >
+            {categoryLabel(cat)}
+          </button>
+        ))}
+      </div>
+    )
   }
 
   function startBacklogEdit(taskId: string, text: string) {
@@ -346,7 +422,38 @@ export function StudyCalendar({
         </div>
       </header>
 
-      <section className="study-upcoming" aria-labelledby="upcoming-title">
+      <div className="study-filter-bar">
+        <div
+          className="study-filter-toggle"
+          role="tablist"
+          aria-label="Calendar view"
+        >
+          {CALENDAR_FILTERS.map(({ id, label }) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={calendarFilter === id}
+              className={`study-filter-btn ${calendarFilter === id ? 'active' : ''}`}
+              onClick={() => setCalendarFilter(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <p className="study-filter-hint">
+          {calendarFilter === 'all'
+            ? 'All work and personal tasks in one view.'
+            : calendarFilter === 'work'
+              ? 'Work calendar — only job and study tasks.'
+              : 'Other calendar — personal, errands, and side stuff.'}
+        </p>
+      </div>
+
+      <section
+        className={`study-upcoming study-upcoming-${calendarFilter}`}
+        aria-labelledby="upcoming-title"
+      >
         <div className="study-upcoming-head">
           <div className="study-upcoming-head-text">
             <div className="study-upcoming-title-row">
@@ -373,11 +480,15 @@ export function StudyCalendar({
                 </button>
               </div>
             </div>
-            <p className="study-upcoming-sub">What&apos;s coming up this week</p>
+            <p className="study-upcoming-sub">
+              {calendarFilter === 'all'
+                ? 'Work & other — next 5 days'
+                : `${filterScopeLabel(calendarFilter)} — next 5 days`}
+            </p>
           </div>
         </div>
         <div className="study-upcoming-grid">
-          {upcomingDays.map(({ date, key, label, tasks, pending }) => {
+          {upcomingDays.map(({ date, key, label, tasks, pending, hidden }) => {
             const isSelected = key === selectedKey
             const isToday = key === dateKey(today)
 
@@ -401,6 +512,12 @@ export function StudyCalendar({
                       {pending > 0
                         ? `${pending} open`
                         : `${tasks.length} done`}
+                      {hidden > 0 && (
+                        <span className="study-upcoming-hidden">
+                          {' '}
+                          · {hidden} hidden
+                        </span>
+                      )}
                     </span>
                     <ul className="study-upcoming-tasks">
                       {tasks.slice(0, 4).map((t) => (
@@ -409,6 +526,12 @@ export function StudyCalendar({
                           className={t.done ? 'done' : ''}
                           title={t.text}
                         >
+                          {calendarFilter === 'all' && (
+                            <span
+                              className={`study-upcoming-dot study-upcoming-dot-${normalizeTask(t).category}`}
+                              aria-hidden
+                            />
+                          )}
                           {t.text}
                         </li>
                       ))}
@@ -417,6 +540,11 @@ export function StudyCalendar({
                       )}
                     </ul>
                   </>
+                ) : hidden > 0 ? (
+                  <p className="study-upcoming-empty study-upcoming-hidden-only">
+                    {hidden} {calendarFilter === 'work' ? 'work' : 'other'}{' '}
+                    task{hidden === 1 ? '' : 's'} hidden
+                  </p>
                 ) : (
                   <p className="study-upcoming-empty">Nothing planned</p>
                 )}
@@ -460,9 +588,11 @@ export function StudyCalendar({
             <div className="study-grid" role="grid">
               {grid.map(({ date, inMonth }) => {
                 const key = dateKey(date)
-                const count = byDate[key]?.length ?? 0
-                const pending =
-                  byDate[key]?.filter((t) => !t.done).length ?? count
+                const allTasks = byDate[key] ?? []
+                const { visible, hidden, pending } = countVisibleAndHidden(
+                  allTasks,
+                  calendarFilter,
+                )
                 const isSelected =
                   date.getFullYear() === selected.getFullYear() &&
                   date.getMonth() === selected.getMonth() &&
@@ -488,9 +618,17 @@ export function StudyCalendar({
                     onClick={() => setSelected(new Date(date))}
                   >
                     <span className="study-cell-num">{date.getDate()}</span>
-                    {count > 0 && (
+                    {visible > 0 && (
                       <span className="study-cell-badge" title={`${pending} open`}>
                         {pending > 0 ? pending : '✓'}
+                      </span>
+                    )}
+                    {hidden > 0 && (
+                      <span
+                        className="study-cell-hidden"
+                        title={`${hidden} hidden by filter`}
+                      >
+                        +{hidden}
                       </span>
                     )}
                   </button>
@@ -533,23 +671,41 @@ export function StudyCalendar({
         <section className="study-task-card" aria-labelledby="task-panel-title">
           <h2 id="task-panel-title" className="study-task-heading">
             {dayTitle}
+            {calendarFilter !== 'all' && (
+              <span className="study-panel-filter">
+                {filterScopeLabel(calendarFilter)}
+              </span>
+            )}
           </h2>
 
           <form className="study-task-form" onSubmit={submitTask}>
-            <input
-              className="study-input"
-              placeholder="e.g. Chapter 4 flashcards, CS lecture notes…"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              aria-label="New task"
-            />
-            <button type="submit" className="study-btn primary">
-              Add
-            </button>
+            <div className="study-task-form-row">
+              <input
+                className="study-input"
+                placeholder={
+                  calendarFilter === 'work'
+                    ? 'e.g. Team standup, project deadline…'
+                    : calendarFilter === 'other'
+                      ? 'e.g. Gym, groceries, dentist…'
+                      : 'e.g. Chapter 4 flashcards, CS lecture notes…'
+                }
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                aria-label="New task"
+              />
+              <button type="submit" className="study-btn primary">
+                Add
+              </button>
+            </div>
+            <CategoryPicker />
           </form>
 
           {tasksForDay.length === 0 ? (
-            <p className="study-empty">Nothing planned yet — add a task above.</p>
+            <p className="study-empty">
+              {calendarFilter === 'all'
+                ? 'Nothing planned yet — add a task above.'
+                : `No ${categoryLabel(activeCategory).toLowerCase()} tasks this day — tap the Work/Other chip on a task to move it, or switch to Everything.`}
+            </p>
           ) : (
             <ul className="study-task-list">
               {tasksForDay.map((t) => (
@@ -606,6 +762,10 @@ export function StudyCalendar({
                         />
                         <span className="study-task-text">{t.text}</span>
                       </label>
+                      <CategoryChip
+                        task={t}
+                        onToggle={(cat) => setTaskCategory(selectedKey, t.id, cat)}
+                      />
                       <div className="study-task-actions">
                         <button
                           type="button"
@@ -633,43 +793,62 @@ export function StudyCalendar({
         </section>
       </div>
 
-      <section className="study-backlog" aria-labelledby="backlog-title">
-        <div className="study-backlog-head">
-          <h2 id="backlog-title" className="study-backlog-title">
-            Eventually
-          </h2>
-          <p className="study-backlog-sub">
-            Not on the calendar yet — dump anything here and schedule it when
-            you&apos;re ready.
-          </p>
+      <section className="study-todo" aria-labelledby="todo-title">
+        <div className="study-todo-head">
+          <div>
+            <h2 id="todo-title" className="study-todo-title">
+              To-do list
+            </h2>
+            <p className="study-todo-sub">
+              Unscheduled tasks — schedule them onto{' '}
+              <strong>{dayTitle}</strong> or any day you pick.
+            </p>
+          </div>
+          {filteredBacklog.length > 0 && (
+            <div className="study-todo-stats" aria-label="To-do counts">
+              <span className="study-todo-stat pending">{todoPending} open</span>
+              {todoDone > 0 && (
+                <span className="study-todo-stat done">{todoDone} done</span>
+              )}
+            </div>
+          )}
         </div>
 
-        <form className="study-backlog-form" onSubmit={submitBacklog}>
+        <form className="study-todo-form" onSubmit={submitBacklog}>
           <textarea
-            className="study-input study-backlog-input"
+            className="study-input study-todo-input"
             rows={2}
-            placeholder="Rough ideas, readings, errands — no date needed…"
+            placeholder="Add a to-do — no date needed yet…"
             value={backlogDraft}
             onChange={(e) => setBacklogDraft(e.target.value)}
-            aria-label="Add unscheduled item"
+            aria-label="Add to-do item"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault()
-                addBacklog(backlogDraft)
+                const category =
+                  calendarFilter === 'all' ? addCategory : activeCategory
+                addBacklog(backlogDraft, category)
                 setBacklogDraft('')
               }
             }}
           />
-          <button type="submit" className="study-btn primary study-backlog-add">
-            Add
-          </button>
+          <div className="study-todo-form-actions">
+            <CategoryPicker />
+            <button type="submit" className="study-btn primary study-todo-add">
+              Add to-do
+            </button>
+          </div>
         </form>
 
-        {backlog.length === 0 ? (
-          <p className="study-empty">Nothing in the pile yet.</p>
+        {filteredBacklog.length === 0 ? (
+          <p className="study-empty">
+            {calendarFilter === 'all'
+              ? 'No to-dos yet — add one above.'
+              : `No ${categoryLabel(activeCategory).toLowerCase()} to-dos yet.`}
+          </p>
         ) : (
-          <ul className="study-task-list study-backlog-list">
-            {backlog.map((t) => (
+          <ul className="study-task-list study-todo-list">
+            {filteredBacklog.map((t) => (
               <li
                 key={t.id}
                 className={`study-task-row ${t.done ? 'done' : ''} ${backlogEditingId === t.id ? 'editing' : ''}`}
@@ -681,7 +860,7 @@ export function StudyCalendar({
                         type="checkbox"
                         checked={t.done}
                         onChange={() => toggleBacklog(t.id)}
-                        aria-label="Mark item done"
+                        aria-label="Mark to-do done"
                       />
                     </label>
                     <form
@@ -692,7 +871,7 @@ export function StudyCalendar({
                         className="study-input study-task-edit-input"
                         value={backlogEditDraft}
                         onChange={(e) => setBacklogEditDraft(e.target.value)}
-                        aria-label="Edit item"
+                        aria-label="Edit to-do"
                         autoFocus
                         onKeyDown={(e) => {
                           if (e.key === 'Escape') {
@@ -714,16 +893,28 @@ export function StudyCalendar({
                     </form>
                   </>
                 ) : (
-                  <>
-                    <label className="study-check">
-                      <input
-                        type="checkbox"
-                        checked={t.done}
-                        onChange={() => toggleBacklog(t.id)}
+                    <>
+                      <label className="study-check">
+                        <input
+                          type="checkbox"
+                          checked={t.done}
+                          onChange={() => toggleBacklog(t.id)}
+                        />
+                        <span className="study-task-text">{t.text}</span>
+                      </label>
+                      <CategoryChip
+                        task={t}
+                        onToggle={(cat) => setBacklogCategory(t.id, cat)}
                       />
-                      <span className="study-task-text">{t.text}</span>
-                    </label>
-                    <div className="study-task-actions">
+                      <div className="study-task-actions">
+                      <button
+                        type="button"
+                        className="study-btn schedule"
+                        aria-label={`Schedule on ${dayTitle}: ${t.text}`}
+                        onClick={() => scheduleTodo(t.id)}
+                      >
+                        Schedule
+                      </button>
                       <button
                         type="button"
                         className="study-btn edit"

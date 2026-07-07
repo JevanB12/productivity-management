@@ -1,7 +1,7 @@
 import type { StudyTask, TasksByDate } from '../types'
 
-function task(text: string): StudyTask {
-  return { id: crypto.randomUUID(), text, done: false }
+function task(text: string, category: 'work' | 'other' = 'other'): StudyTask {
+  return { id: crypto.randomUUID(), text, done: false, category }
 }
 
 /** Recovery data — Jun 2026 */
@@ -12,7 +12,7 @@ export function buildRecoverySeed(todayKey: string): {
   const byDate: TasksByDate = {}
 
   function add(dateKey: string, ...texts: string[]) {
-    byDate[dateKey] = [...(byDate[dateKey] ?? []), ...texts.map(task)]
+    byDate[dateKey] = [...(byDate[dateKey] ?? []), ...texts.map((text) => task(text))]
   }
 
   // Today

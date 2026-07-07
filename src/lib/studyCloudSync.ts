@@ -1,4 +1,5 @@
 import type { StudyCalendarData, StudyTask, TasksByDate } from '../types'
+import { normalizeByDate, normalizeTasks } from './categories'
 import { getSupabase } from './supabase'
 
 type StudyCalendarRow = {
@@ -8,20 +9,22 @@ type StudyCalendarRow = {
   updated_at: string
 }
 
-function normalizeByDate(raw: unknown): TasksByDate {
+function normalizeByDateRaw(raw: unknown): TasksByDate {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
-  return raw as TasksByDate
+  return normalizeByDate(raw as TasksByDate)
 }
 
-function normalizeBacklog(raw: unknown): StudyTask[] {
+function normalizeBacklogRaw(raw: unknown): StudyTask[] {
   if (!Array.isArray(raw)) return []
-  return raw.filter(
-    (t): t is StudyTask =>
-      t &&
-      typeof t === 'object' &&
-      typeof t.id === 'string' &&
-      typeof t.text === 'string' &&
-      typeof t.done === 'boolean',
+  return normalizeTasks(
+    raw.filter(
+      (t): t is StudyTask =>
+        t &&
+        typeof t === 'object' &&
+        typeof t.id === 'string' &&
+        typeof t.text === 'string' &&
+        typeof t.done === 'boolean',
+    ),
   )
 }
 
@@ -40,8 +43,8 @@ export async function fetchStudyData(
 
   const row = data as StudyCalendarRow
   return {
-    byDate: normalizeByDate(row.by_date),
-    backlog: normalizeBacklog(row.backlog),
+    byDate: normalizeByDateRaw(row.by_date),
+    backlog: normalizeBacklogRaw(row.backlog),
     updatedAt: row.updated_at,
   }
 }

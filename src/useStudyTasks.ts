@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { buildRecoverySeed, mergeSeed } from './data/recoverySeed'
+import { normalizeByDate, normalizeTasks } from './lib/categories'
 import { fetchStudyData, saveStudyData } from './lib/studyCloudSync'
 import { isSupabaseConfigured } from './lib/supabase'
-import type { StudyTask } from './types'
+import type { StudyTask, TaskCategory } from './types'
 
 const LEGACY_TASKS_KEY = 'study-calendar-tasks'
 const LEGACY_BACKLOG_KEY = 'study-calendar-backlog'
@@ -29,7 +30,7 @@ function load(userId: string): TasksByDate {
     if (!raw) raw = localStorage.getItem(LEGACY_TASKS_KEY)
     if (!raw) return {}
     const parsed = JSON.parse(raw) as TasksByDate
-    return parsed && typeof parsed === 'object' ? parsed : {}
+    return parsed && typeof parsed === 'object' ? normalizeByDate(parsed) : {}
   } catch {
     return {}
   }
@@ -45,7 +46,7 @@ function loadBacklog(userId: string): StudyTask[] {
     if (!raw) raw = localStorage.getItem(LEGACY_BACKLOG_KEY)
     if (!raw) return []
     const parsed = JSON.parse(raw) as StudyTask[]
-    return Array.isArray(parsed) ? parsed : []
+    return Array.isArray(parsed) ? normalizeTasks(parsed) : []
   } catch {
     return []
   }
@@ -197,13 +198,15 @@ export function useStudyTasks(userId: string) {
     }
   }, [byDate, backlog, userId])
 
-  const addTask = useCallback((key: string, text: string) => {
+  const addTask = useCallback(
+    (key: string, text: string, category: TaskCategory = 'other') => {
     const trimmed = text.trim()
     if (!trimmed) return
     const task: StudyTask = {
       id: crypto.randomUUID(),
       text: trimmed,
       done: false,
+      category,
     }
     setByDate((prev) => ({
       ...prev,
@@ -252,21 +255,50 @@ export function useStudyTasks(userId: string) {
     })
   }, [])
 
+  const setTaskCategory = useCallback(
+    (key: string, taskId: string, category: TaskCategory) => {
+      setByDate((prev) => {
+        const list = prev[key]
+        if (!list) return prev
+        return {
+          ...prev,
+          [key]: list.map((t) =>
+            t.id === taskId ? { ...t, category } : t,
+          ),
+        }
+      })
+    },
+    [],
+  )
+
   const shiftAllByDays = useCallback((deltaDays: number) => {
     const n = Math.trunc(deltaDays)
     if (n === 0 || !Number.isFinite(n)) return
     setByDate((prev) => shiftAllTasks(prev, n))
   }, [])
 
-  const addBacklog = useCallback((text: string) => {
+  const addBacklog = useCallback((text: string, category: TaskCategory = 'other') => {
     const trimmed = text.trim()
     if (!trimmed) return
     const task: StudyTask = {
       id: crypto.randomUUID(),
       text: trimmed,
       done: false,
+      category,
     }
     setBacklog((prev) => [...prev, task])
+  }, [])
+
+  const scheduleBacklogToDate = useCallback((taskId: string, key: string) => {
+    setBacklog((prev) => {
+      const item = prev.find((t) => t.id === taskId)
+      if (!item) return prev
+      setByDate((byDate) => ({
+        ...byDate,
+        [key]: [...(byDate[key] ?? []), item],
+      }))
+      return prev.filter((t) => t.id !== taskId)
+    })
   }, [])
 
   const toggleBacklog = useCallback((taskId: string) => {
@@ -286,6 +318,15 @@ export function useStudyTasks(userId: string) {
       prev.map((t) => (t.id === taskId ? { ...t, text: trimmed } : t)),
     )
   }, [])
+
+  const setBacklogCategory = useCallback(
+    (taskId: string, category: TaskCategory) => {
+      setBacklog((prev) =>
+        prev.map((t) => (t.id === taskId ? { ...t, category } : t)),
+      )
+    },
+    [],
+  )
 
   const importRecoverySeed = useCallback(async () => {
     const today = new Date()
@@ -331,10 +372,13 @@ export function useStudyTasks(userId: string) {
     toggleTask,
     removeTask,
     renameTask,
+    setTaskCategory,
     shiftAllByDays,
     addBacklog,
+    scheduleBacklogToDate,
     toggleBacklog,
     removeBacklog,
     renameBacklog,
+    setBacklogCategory,
   }
 }
