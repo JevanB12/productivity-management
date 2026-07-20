@@ -78,9 +78,11 @@ function upcomingDayLabel(date: Date, today: Date): string {
 export function StudyCalendar({
   userId,
   userEmail,
+  shell = false,
 }: {
   userId: string
   userEmail: string
+  shell?: boolean
 }) {
   const { signOut } = useAuth()
   const today = useMemo(() => startOfToday(), [])
@@ -389,7 +391,7 @@ export function StudyCalendar({
   }
 
   return (
-    <div className="study-layout">
+    <div className={`study-layout ${shell ? 'study-layout-shell' : ''}`}>
       <header className="study-header">
         <div>
           <h1 className="study-title">Study calendar</h1>
@@ -406,19 +408,23 @@ export function StudyCalendar({
             <span className="study-sync-dot" aria-hidden />
             <span className="study-sync-label">{syncStatusLabel(syncStatus)}</span>
           </div>
-          <span className="auth-user" title={userEmail}>
-            {userEmail}
-          </span>
+          {!shell && (
+            <span className="auth-user" title={userEmail}>
+              {userEmail}
+            </span>
+          )}
           <button type="button" className="study-btn ghost" onClick={selectToday}>
             Today
           </button>
-          <button
-            type="button"
-            className="study-btn ghost"
-            onClick={() => void signOut()}
-          >
-            Sign out
-          </button>
+          {!shell && (
+            <button
+              type="button"
+              className="study-btn ghost"
+              onClick={() => void signOut()}
+            >
+              Sign out
+            </button>
+          )}
         </div>
       </header>
 

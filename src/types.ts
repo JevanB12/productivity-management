@@ -9,6 +9,13 @@ export type StudyTask = {
 
 export type TasksByDate = Record<string, StudyTask[]>
 
+export type RoutineItem = {
+  id: string
+  label: string
+  startTime: string
+  endTime: string
+}
+
 export type StudyCalendarData = {
   byDate: TasksByDate
   backlog: StudyTask[]

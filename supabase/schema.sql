@@ -5,6 +5,7 @@ create table if not exists public.study_calendars (
   user_id uuid primary key references auth.users (id) on delete cascade,
   by_date jsonb not null default '{}'::jsonb,
   backlog jsonb not null default '[]'::jsonb,
+  daily_routine jsonb not null default '[]'::jsonb,
   updated_at timestamptz not null default now()
 );
 

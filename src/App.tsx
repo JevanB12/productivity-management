@@ -1,6 +1,6 @@
 import { AuthProvider, useAuth } from './AuthProvider'
 import { AuthScreen } from './components/AuthScreen'
-import { StudyCalendar } from './components/StudyCalendar'
+import { AppShell } from './components/AppShell'
 
 function AppContent() {
   const { user, loading } = useAuth()
@@ -15,7 +15,7 @@ function AppContent() {
 
   if (!user) return <AuthScreen />
 
-  return <StudyCalendar userId={user.id} userEmail={user.email ?? 'Signed in'} />
+  return <AppShell userId={user.id} userEmail={user.email ?? 'Signed in'} />
 }
 
 function App() {
