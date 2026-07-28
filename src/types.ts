@@ -21,3 +21,23 @@ export type StudyCalendarData = {
   backlog: StudyTask[]
   updatedAt: string | null
 }
+
+export type WorkoutWeekday =
+  | 'monday'
+  | 'tuesday'
+  | 'wednesday'
+  | 'thursday'
+  | 'friday'
+  | 'saturday'
+  | 'sunday'
+
+export type WorkoutItem = {
+  id: string
+  name: string
+  sets: string
+  reps: string
+  weight: string
+  notes: string
+}
+
+export type WorkoutsByWeekday = Partial<Record<WorkoutWeekday, WorkoutItem[]>>
