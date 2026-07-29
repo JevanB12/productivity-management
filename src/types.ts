@@ -41,3 +41,11 @@ export type WorkoutItem = {
 }
 
 export type WorkoutsByWeekday = Partial<Record<WorkoutWeekday, WorkoutItem[]>>
+
+export type GoalItem = {
+  id: string
+  topic: string
+  text: string
+  notes: string
+  done: boolean
+}

@@ -7,6 +7,7 @@ create table if not exists public.study_calendars (
   backlog jsonb not null default '[]'::jsonb,
   daily_routine jsonb not null default '[]'::jsonb,
   weekly_workouts jsonb not null default '{}'::jsonb,
+  goals jsonb not null default '[]'::jsonb,
   updated_at timestamptz not null default now()
 );
 

@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useAuth } from '../AuthProvider'
 import { DailyRoutine } from './DailyRoutine'
+import { GoalsPage } from './GoalsPage'
 import { StudyCalendar } from './StudyCalendar'
 import { WorkoutLog } from './WorkoutLog'
 import './StudyCalendar.css'
 import './AppShell.css'
 
-type AppPage = 'calendar' | 'routine' | 'workouts'
+type AppPage = 'calendar' | 'routine' | 'workouts' | 'goals'
 
 export function AppShell({
   userId,
@@ -43,6 +44,13 @@ export function AppShell({
           >
             Workouts
           </button>
+          <button
+            type="button"
+            className={`app-nav-btn ${page === 'goals' ? 'active' : ''}`}
+            onClick={() => setPage('goals')}
+          >
+            Goals
+          </button>
         </nav>
         <div className="app-shell-actions">
           <span className="auth-user" title={userEmail}>
@@ -63,8 +71,10 @@ export function AppShell({
           <StudyCalendar userId={userId} userEmail={userEmail} shell />
         ) : page === 'routine' ? (
           <DailyRoutine userId={userId} />
-        ) : (
+        ) : page === 'workouts' ? (
           <WorkoutLog userId={userId} />
+        ) : (
+          <GoalsPage userId={userId} />
         )}
       </main>
     </div>
