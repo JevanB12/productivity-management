@@ -49,3 +49,10 @@ export type GoalItem = {
   notes: string
   done: boolean
 }
+
+export type GuitarNote = {
+  id: string
+  title: string
+  body: string
+  updatedAt: string
+}

@@ -1,0 +1,219 @@
+.guitar-layout {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 0 3rem;
+  text-align: left;
+}
+
+.guitar-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.guitar-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem;
+  color: var(--text-h);
+}
+
+.guitar-sub {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+  max-width: 42ch;
+}
+
+.guitar-sync {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.guitar-sync-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.guitar-sync-synced .guitar-sync-dot {
+  background: #22c55e;
+}
+
+.guitar-sync-syncing .guitar-sync-dot,
+.guitar-sync-loading .guitar-sync-dot {
+  background: var(--accent);
+  animation: study-sync-pulse 1s ease-in-out infinite;
+}
+
+.guitar-sync-error .guitar-sync-dot {
+  background: var(--danger);
+}
+
+.guitar-add-card,
+.guitar-list-card {
+  padding: 1.1rem 1rem;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+  margin-bottom: 1rem;
+}
+
+.guitar-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.85rem;
+  color: var(--text-h);
+}
+
+.guitar-form,
+.guitar-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.guitar-textarea {
+  width: 100%;
+  min-height: 5.5rem;
+  resize: vertical;
+  font-family: ui-monospace, 'Cascadia Code', 'Segoe UI Mono', monospace;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.guitar-form-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.guitar-edit-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.guitar-error {
+  margin: 0.65rem 0 0;
+  font-size: 0.85rem;
+  color: var(--danger);
+}
+
+.guitar-list-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+
+.guitar-list-head .guitar-section-title {
+  margin-bottom: 0;
+}
+
+.guitar-total {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.guitar-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.guitar-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  border-left: 3px solid var(--accent);
+}
+
+.guitar-item.editing {
+  flex-direction: column;
+  align-items: stretch;
+  padding: 0.7rem 0.75rem;
+}
+
+.guitar-item-main {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+}
+
+.guitar-item-main:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.guitar-item-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-h);
+  word-break: break-word;
+}
+
+.guitar-item-meta {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.guitar-item-preview {
+  margin-top: 2px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  font-family: ui-monospace, 'Cascadia Code', 'Segoe UI Mono', monospace;
+}
+
+.guitar-item-body {
+  margin-top: 4px;
+  font-size: 0.82rem;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: ui-monospace, 'Cascadia Code', 'Segoe UI Mono', monospace;
+  line-height: 1.45;
+}
+
+.guitar-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
