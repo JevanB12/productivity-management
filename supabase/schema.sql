@@ -9,6 +9,7 @@ create table if not exists public.study_calendars (
   weekly_workouts jsonb not null default '{}'::jsonb,
   goals jsonb not null default '[]'::jsonb,
   guitar_notes jsonb not null default '[]'::jsonb,
+  free_notes jsonb not null default '[]'::jsonb,
   updated_at timestamptz not null default now()
 );
 

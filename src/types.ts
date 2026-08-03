@@ -56,3 +56,10 @@ export type GuitarNote = {
   body: string
   updatedAt: string
 }
+
+export type FreeNote = {
+  id: string
+  title: string
+  body: string
+  updatedAt: string
+}

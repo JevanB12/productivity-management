@@ -3,12 +3,19 @@ import { useAuth } from '../AuthProvider'
 import { DailyRoutine } from './DailyRoutine'
 import { GoalsPage } from './GoalsPage'
 import { GuitarNotes } from './GuitarNotes'
+import { NotesPage } from './NotesPage'
 import { StudyCalendar } from './StudyCalendar'
 import { WorkoutLog } from './WorkoutLog'
 import './StudyCalendar.css'
 import './AppShell.css'
 
-type AppPage = 'calendar' | 'routine' | 'workouts' | 'goals' | 'guitar'
+type AppPage =
+  | 'calendar'
+  | 'routine'
+  | 'workouts'
+  | 'goals'
+  | 'guitar'
+  | 'notes'
 
 export function AppShell({
   userId,
@@ -59,6 +66,13 @@ export function AppShell({
           >
             Guitar
           </button>
+          <button
+            type="button"
+            className={`app-nav-btn ${page === 'notes' ? 'active' : ''}`}
+            onClick={() => setPage('notes')}
+          >
+            Notes
+          </button>
         </nav>
         <div className="app-shell-actions">
           <span className="auth-user" title={userEmail}>
@@ -83,8 +97,10 @@ export function AppShell({
           <WorkoutLog userId={userId} />
         ) : page === 'goals' ? (
           <GoalsPage userId={userId} />
-        ) : (
+        ) : page === 'guitar' ? (
           <GuitarNotes userId={userId} />
+        ) : (
+          <NotesPage userId={userId} />
         )}
       </main>
     </div>
