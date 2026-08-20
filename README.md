@@ -1,73 +1,71 @@
-# React + TypeScript + Vite
+# Productivity Management
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+### Personal Project
+A personal productivity web app for planning days, managing routines, and keeping everyday notes in one place.
 
-Currently, two official plugins are available:
+Built to organise study, workouts, goals, and misc notes without juggling separate apps — with cloud sync so plans stay available across devices when signed in.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## Overview
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+This project is a signed-in web application for day-to-day personal organisation. It combines calendar-style task planning with recurring routines, a weekly workout plan, goal tracking, guitar practice notes, and a general notes space for shopping lists or anything else.
 
-## Expanding the ESLint configuration
+The focus is practical personal use: simple screens, clear lists, and reliable save/sync rather than a large multi-user product.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+---
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Features
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### Calendar
+- Day-by-day task planning
+- Work / other task categories
+- Backlog support for unscheduled items
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+### Daily routine
+- Repeating time blocks for every day
+- Sleep, meals, study, exercise, and similar schedule pieces
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Workouts
+- Fixed Monday–Sunday workout plan
+- Exercises with sets, reps, weight, and notes
+- Full-week view so the whole plan is visible at once
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Goals
+- Goals grouped by topic (e.g. lifts, study, habits)
+- Optional notes and done/not-done tracking
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+### Guitar notes
+- Song, chord, riff, and practice notes
+- Expandable entries for longer chord/tab text
+
+### General notes
+- Freeform notes for shopping lists, ideas, reminders — anything
+
+### Accounts & sync
+- Email/password and Google sign-in
+- Local caching with cloud sync when connected
+
+---
+
+## Tech Stack
+
+| Layer | Technologies |
+|-------|--------------|
+| **Frontend** | React 19, TypeScript, Vite |
+| **Styling** | Plain CSS with shared design tokens |
+| **Auth & cloud** | Supabase Auth + Postgres (JSON columns, RLS) |
+| **Local cache** | Browser `localStorage` |
+
+### Architecture notes
+- In-app page switching (calendar, routine, workouts, goals, guitar, notes)
+- Feature hooks for load / save / sync
+- Per-user rows protected with Supabase Row Level Security
+- Dual-write pattern: always save locally, debounce cloud updates when configured
+
+---
+
+## Project Context
+
+This is a **personal productivity project**, not coursework.  
+It was built for day-to-day organisation (planning, training, goals, and notes) with a focus on a clean UI and cloud-backed persistence.
