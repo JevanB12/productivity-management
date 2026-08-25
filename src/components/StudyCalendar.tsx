@@ -394,7 +394,7 @@ export function StudyCalendar({
     <div className={`study-layout ${shell ? 'study-layout-shell' : ''}`}>
       <header className="study-header">
         <div>
-          <h1 className="study-title">Study calendar</h1>
+          <h1 className="study-title">Calendar</h1>
           <p className="study-sub">
             Pick a day, add what you need to study — saved to your account in
             the cloud.

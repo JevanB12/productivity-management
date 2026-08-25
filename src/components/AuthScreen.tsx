@@ -47,7 +47,7 @@ export function AuthScreen() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <h1 className="auth-title">Study calendar</h1>
+        <h1 className="auth-title">Productivity Management</h1>
         <p className="auth-sub">
           Sign in to load and save your plan securely — no backup codes needed.
         </p>

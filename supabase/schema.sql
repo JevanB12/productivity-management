@@ -1,5 +1,5 @@
 -- Fresh install: run in Supabase SQL Editor
--- https://supabase.com/dashboard/project/mjiictmhhwbkzflvioam/sql/new
+-- Dashboard → SQL → New query
 
 create table if not exists public.study_calendars (
   user_id uuid primary key references auth.users (id) on delete cascade,

@@ -1,5 +1,5 @@
 -- Run in Supabase SQL Editor after the original schema.sql
--- https://supabase.com/dashboard/project/mjiictmhhwbkzflvioam/sql/new
+-- Dashboard → SQL → New query
 
 drop policy if exists "study_calendars_anon_all" on public.study_calendars;
 

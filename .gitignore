@@ -1,3 +1,11 @@
+# Dependencies / build
+node_modules
+dist
+dist-ssr
+build
+.vite
+*.tsbuildinfo
+
 # Logs
 logs
 *.log
@@ -7,24 +15,43 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# Environment & secrets — never commit real keys
 .env
 .env.*
 !.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+credentials.json
+**/secrets.*
+**/service_role*
+supabase/.temp
+supabase/.branches
 
-# Local data backups (keep the folder, not the JSON files)
-backups/*.json
-
-# Editor directories and files
+# Local / editor / OS
+*.local
 .vscode/*
 !.vscode/extensions.json
 .idea
 .DS_Store
+Thumbs.db
+Desktop.ini
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+# Local data backups (keep the folder, not the contents)
+backups/*
+!backups/.gitkeep
+*.sqlite
+*.sqlite3
+*.db
+
+# Coverage / misc
+coverage
+.nyc_output
+.cache

@@ -9,7 +9,7 @@ REM === Make Node visible ===
 set "PATH=C:\Program Files\nodejs;%APPDATA%\npm;%PATH%"
 
 cls
-echo Starting Study Calendar...
+echo Starting Productivity Management...
 echo.
 echo App folder:
 echo %APP_DIR%
@@ -64,7 +64,6 @@ if not exist node_modules (
   if errorlevel 1 (
     echo.
     echo ERROR: npm install failed.
-    echo Copy the error above and send it to ChatGPT.
     echo.
     pause
     exit /b 1
