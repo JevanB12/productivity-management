@@ -53,8 +53,8 @@ export function routineCrossesMidnight(
 }
 
 /**
- * Order blocks through the day: overnight first (by wake/end time), then
- * everything else by start time.
+ * Order blocks through the day: daytime by start time, then overnight
+ * blocks last (also by start time) so sleep / late wraparound sit at the end.
  */
 export function sortRoutineItems(items: RoutineItem[]): RoutineItem[] {
   const normalized = items.map((item) => ({
@@ -70,12 +70,12 @@ export function sortRoutineItems(items: RoutineItem[]): RoutineItem[] {
     (item) => !routineCrossesMidnight(item.startTime, item.endTime),
   )
 
-  overnight.sort(
-    (a, b) => timeToMinutes(a.endTime) - timeToMinutes(b.endTime),
-  )
   daytime.sort(
     (a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime),
   )
+  overnight.sort(
+    (a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime),
+  )
 
-  return [...overnight, ...daytime]
+  return [...daytime, ...overnight]
 }
