@@ -118,6 +118,8 @@ export function StudyCalendar({
   const [backlogEditingId, setBacklogEditingId] = useState<string | null>(null)
   const [backlogEditDraft, setBacklogEditDraft] = useState('')
   const [upcomingOffset, setUpcomingOffset] = useState(0)
+  const [calendarSearchOpen, setCalendarSearchOpen] = useState(false)
+  const [calendarSearch, setCalendarSearch] = useState('')
 
   const selectedKey = dateKey(selected)
   const activeCategory = defaultCategoryForFilter(calendarFilter)
@@ -125,6 +127,17 @@ export function StudyCalendar({
     () => filterByDate(byDate, calendarFilter),
     [byDate, calendarFilter],
   )
+  const searchTerm = calendarSearch.trim().toLowerCase()
+  const matchingDateKeys = useMemo(() => {
+    if (!searchTerm) return new Set<string>()
+    return new Set(
+      Object.entries(filteredByDate)
+        .filter(([, tasks]) =>
+          tasks.some((task) => task.text.toLowerCase().includes(searchTerm)),
+        )
+        .map(([key]) => key),
+    )
+  }, [filteredByDate, searchTerm])
   const filteredBacklog = useMemo(
     () => filterTasks(backlog, calendarFilter),
     [backlog, calendarFilter],
@@ -181,6 +194,10 @@ export function StudyCalendar({
 
     return cells
   }, [cursorYear, cursorMonth])
+  const visibleMatchingCount = grid.reduce(
+    (count, { date }) => count + (matchingDateKeys.has(dateKey(date)) ? 1 : 0),
+    0,
+  )
 
   const weekLabels = useMemo(() => weekdayShortLabels(), [])
 
@@ -573,15 +590,56 @@ export function StudyCalendar({
                 ‹
               </button>
               <h2 className="study-cal-month">{monthLabel(cursorYear, cursorMonth)}</h2>
-              <button
-                type="button"
-                className="study-btn icon"
-                onClick={goNextMonth}
-                aria-label="Next month"
-              >
-                ›
-              </button>
+              <div className="study-cal-toolbar-actions">
+                <button
+                  type="button"
+                  className="study-btn icon"
+                  onClick={goNextMonth}
+                  aria-label="Next month"
+                >
+                  ›
+                </button>
+                <button
+                  type="button"
+                  className={`study-btn icon study-cal-search-toggle ${calendarSearchOpen ? 'active' : ''}`}
+                  onClick={() => {
+                    setCalendarSearchOpen((open) => !open)
+                    setCalendarSearch('')
+                  }}
+                  aria-label={calendarSearchOpen ? 'Close calendar search' : 'Search calendar'}
+                  title={calendarSearchOpen ? 'Close search' : 'Search calendar'}
+                >
+                  {calendarSearchOpen ? (
+                    <svg viewBox="0 0 20 20" aria-hidden="true">
+                      <path d="m5 5 10 10M15 5 5 15" />
+                    </svg>
+                  ) : (
+                    <svg viewBox="0 0 20 20" aria-hidden="true">
+                      <circle cx="8.5" cy="8.5" r="5.5" />
+                      <path d="m12.5 12.5 4 4" />
+                    </svg>
+                  )}
+                </button>
+              </div>
             </div>
+            {calendarSearchOpen && (
+              <input
+                className="study-input study-cal-search-input"
+                type="search"
+                placeholder="Search tasks"
+                aria-label="Search calendar tasks"
+                value={calendarSearch}
+                onChange={(event) => setCalendarSearch(event.target.value)}
+                autoFocus
+              />
+            )}
+            {calendarSearchOpen && searchTerm && (
+              <p className="study-cal-search-count" aria-live="polite">
+                {visibleMatchingCount === 0
+                  ? 'No matching days'
+                  : `${visibleMatchingCount} matching ${visibleMatchingCount === 1 ? 'day' : 'days'}`}
+              </p>
+            )}
 
             <div className="study-weekdays" role="row">
               {weekLabels.map((w) => (
@@ -618,6 +676,7 @@ export function StudyCalendar({
                       !inMonth && 'muted',
                       isToday && 'today',
                       isSelected && 'selected',
+                      matchingDateKeys.has(key) && 'search-match',
                     ]
                       .filter(Boolean)
                       .join(' ')}
